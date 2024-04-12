@@ -41,16 +41,16 @@
         <div class="grid grid-cols-2 gap-4">
           <div v-for="(nomination, index) in nominations" :key="index"
                :class="{'shadow-lg': !nomination.vetoed, 'bg-gray-300 relative': nomination.vetoed}"
-               class="p-3 border border-gray-300 rounded cursor-pointer"
+               class="p-3 border border-gray-300 rounded cursor-pointer hover:bg-gray-100"
                @click="veto(index)">
-            <div v-if="nomination.vetoed" class="absolute top-0 left-0 w-full h-full flex items-center justify-center text-red-500 text-6xl">
-              &#10005;
+            <div v-if="nomination.vetoed" class="absolute top-0 left-0 w-full h-full flex items-center justify-center text-gray-500">
+              <font-awesome-icon :icon="['fas', 'skull']" class="text-6xl"/>
             </div>
             {{ nomination.name }}
           </div>
         </div>
       </div>
-
+      
       <!-- Result Section -->
       <div v-else-if="stage === 'result'" class="space-y-4">
         <h1 class="text-2xl font-bold text-center">Winner</h1>
