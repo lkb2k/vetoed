@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, KeyboardEvent } from 'react'
+import { useState, useEffect, KeyboardEvent, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,36 +11,24 @@ type Person = {
   choice: string
 }
 
+type Stage = 'input' | 'veto' | 'winner' | 'choices';
+
 export function VetoSelection() {
   const [people, setPeople] = useState<Person[]>([])
   const [currentName, setCurrentName] = useState('')
   const [currentChoice, setCurrentChoice] = useState('')
-  const [stage, setStage] = useState<'names' | 'choices' | 'veto' | 'winner'>('names')
+  const [stage, setStage] = useState<Stage>('input')
   const [currentPersonIndex, setCurrentPersonIndex] = useState(0)
   const [remainingChoices, setRemainingChoices] = useState<string[]>([])
   const [winner, setWinner] = useState('')
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
   const addPerson = () => {
-    if (currentName.trim()) {
-      setPeople([...people, { name: currentName, choice: '' }])
+    if (currentName.trim() && currentChoice.trim()) {
+      setPeople([...people, { name: currentName, choice: currentChoice }])
       setCurrentName('')
-    }
-  }
-
-  const addChoice = () => {
-    if (currentChoice.trim()) {
-      const updatedPeople = [...people]
-      updatedPeople[currentPersonIndex].choice = currentChoice
-      setPeople(updatedPeople)
       setCurrentChoice('')
-      if (currentPersonIndex < people.length - 1) {
-        setCurrentPersonIndex(currentPersonIndex + 1)
-      } else {
-        shufflePeople()
-        setStage('veto')
-        setCurrentPersonIndex(0)
-        setRemainingChoices(people.map(p => p.choice))
-      }
+      nameInputRef.current?.focus()
     }
   }
 
@@ -59,8 +47,9 @@ export function VetoSelection() {
     }
   }
 
-  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>, action: () => void) => {
-    if (e.key === 'Enter') {
+  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>, action: () => void) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
       action()
     }
   }
@@ -69,7 +58,7 @@ export function VetoSelection() {
     setPeople([])
     setCurrentName('')
     setCurrentChoice('')
-    setStage('names')
+    setStage('input') // Changed from 'names' to 'input'
     setCurrentPersonIndex(0)
     setRemainingChoices([])
     setWinner('')
@@ -81,48 +70,39 @@ export function VetoSelection() {
     }
   }, [stage])
 
+  const startVetoProcess = () => {
+    shufflePeople();
+    setStage('veto');
+    setCurrentPersonIndex(0);
+    setRemainingChoices(people.map(p => p.choice));
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ backgroundColor: '#0d1b2a' }}>
       <Card className="w-full max-w-md" style={{ backgroundColor: '#1b263b' }}>
         <CardContent className="p-6">
-          {stage === 'names' && (
+          {stage === 'input' && (
             <div className="space-y-4">
               <Input
                 type="text"
                 value={currentName}
                 onChange={(e) => setCurrentName(e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e, addPerson)}
-                placeholder="Enter name"
+                onKeyPress={(e) => handleKeyPress(e, () => {/* Do nothing, let it focus on textarea */})}
+                placeholder="Voter"
                 className="w-full text-xl p-6 h-20"
+                style={{ backgroundColor: '#415a77', color: '#e0e1dd' }}
+                ref={nameInputRef}
+              />
+              <textarea
+                value={currentChoice}
+                onChange={(e) => setCurrentChoice(e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, addPerson)}
+                placeholder="Option"
+                className="w-full text-xl p-6 h-40 resize-none rounded-md"
                 style={{ backgroundColor: '#415a77', color: '#e0e1dd' }}
               />
               <Button onClick={addPerson} className="w-full text-xl p-8 h-20" style={{ backgroundColor: '#778da9', color: '#0d1b2a' }}>
-                Add Voter
-              </Button>
-              {people.length > 1 && (
-                <Button onClick={() => setStage('choices')} className="w-full text-xl p-8 h-20" style={{ backgroundColor: '#778da9', color: '#0d1b2a' }}>
-                  Done Adding Voters
-                </Button>
-              )}
-            </div>
-          )}
-
-          {stage === 'choices' && (
-            <div className="space-y-4">
-              <h2 className="text-3xl font-bold text-center mb-6" style={{ color: '#e0e1dd' }}>
-                {people[currentPersonIndex].name}, enter your choice
-              </h2>
-              <Input
-                type="text"
-                value={currentChoice}
-                onChange={(e) => setCurrentChoice(e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e, addChoice)}
-                placeholder="Enter choice"
-                className="w-full text-xl p-6 h-20"
-                style={{ backgroundColor: '#415a77', color: '#e0e1dd' }}
-              />
-              <Button onClick={addChoice} className="w-full text-xl p-8 h-20" style={{ backgroundColor: '#778da9', color: '#0d1b2a' }}>
-                Submit Choice
+                Add Vote
               </Button>
             </div>
           )}
@@ -130,7 +110,7 @@ export function VetoSelection() {
           {stage === 'veto' && (
             <div className="space-y-4">
               <h2 className="text-3xl font-bold text-center mb-6" style={{ color: '#e0e1dd' }}>
-                {people[currentPersonIndex].name}, select an option to veto
+                {people[currentPersonIndex].name}, what's your veto?
               </h2>
               <div className="grid grid-cols-1 gap-4">
                 {remainingChoices.map((choice, index) => (
@@ -178,21 +158,27 @@ export function VetoSelection() {
         </CardContent>
       </Card>
 
-      {/* New section to display entered names */}
-      {stage === 'names' && people.length > 0 && (
+      {/* Display entered names and choices */}
+      {stage === 'input' && people.length > 0 && (
         <div className="mt-6 w-full max-w-md">
-          <h3 className="text-2xl font-semibold mb-3" style={{ color: '#e0e1dd' }}>Voters</h3>
-          <ul className="space-y-2">
+          <h3 className="text-2xl font-semibold mb-3" style={{ color: '#e0e1dd' }}>Choices so far</h3>
+          <ul className="space-y-2 mb-3">
             {people.map((person, index) => (
               <li
                 key={index}
-                className="bg-opacity-50 rounded p-2 text-lg"
+                className="bg-opacity-50 rounded p-2 text-lg flex justify-between"
                 style={{ backgroundColor: '#415a77', color: '#e0e1dd' }}
               >
-                {person.name}
+                <span>{person.name}</span>
+                <span>{person.choice}</span>
               </li>
             ))}
           </ul>
+          {people.length > 1 && (
+                <Button onClick={startVetoProcess} className="w-full text-xl p-8 h-20" style={{ backgroundColor: '#778da9', color: '#0d1b2a' }}>
+                  Lets Veto
+                </Button>
+              )}
         </div>
       )}
     </div>
