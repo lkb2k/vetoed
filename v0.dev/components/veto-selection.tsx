@@ -87,7 +87,6 @@ export function VetoSelection() {
         <CardContent className="p-6">
           {stage === 'names' && (
             <div className="space-y-4">
-              <h2 className="text-3xl font-bold text-center mb-6" style={{ color: '#e0e1dd' }}>Enter Names</h2>
               <Input
                 type="text"
                 value={currentName}
@@ -98,11 +97,11 @@ export function VetoSelection() {
                 style={{ backgroundColor: '#415a77', color: '#e0e1dd' }}
               />
               <Button onClick={addPerson} className="w-full text-xl p-8 h-20" style={{ backgroundColor: '#778da9', color: '#0d1b2a' }}>
-                Add Person
+                Add Voter
               </Button>
               {people.length > 1 && (
                 <Button onClick={() => setStage('choices')} className="w-full text-xl p-8 h-20" style={{ backgroundColor: '#778da9', color: '#0d1b2a' }}>
-                  Done
+                  Done Adding Voters
                 </Button>
               )}
             </div>
@@ -178,6 +177,24 @@ export function VetoSelection() {
           )}
         </CardContent>
       </Card>
+
+      {/* New section to display entered names */}
+      {stage === 'names' && people.length > 0 && (
+        <div className="mt-6 w-full max-w-md">
+          <h3 className="text-2xl font-semibold mb-3" style={{ color: '#e0e1dd' }}>Voters</h3>
+          <ul className="space-y-2">
+            {people.map((person, index) => (
+              <li
+                key={index}
+                className="bg-opacity-50 rounded p-2 text-lg"
+                style={{ backgroundColor: '#415a77', color: '#e0e1dd' }}
+              >
+                {person.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
